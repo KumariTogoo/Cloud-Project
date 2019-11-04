@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: container on ecs cluster
+
+Resources:
+
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: webapis
+      Cpu: 256
+      Memory: 512
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !ImportValue ECSTaskExecutionRole
+      ContainerDefinitions:
+        - Name: webapp
+          Image: 845530002109.dkr.ecr.us-east-1.amazonaws.com/cloud-engineer-project:latest
+          Cpu: 256
+          Memory: 512
+          PortMappings:
+            - ContainerPort: 5000
+              Protocol: tcp
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: 'webapis'
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: 'webapp-log'
+
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: webapp-service
+      TaskDefinition: !Ref Task
+      Cluster: !ImportValue 'ECSCluster'
+      LaunchType: FARGATE
+      DesiredCount: 2
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 70
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !ImportValue Subnet1
+            - !ImportValue Subnet2
+          SecurityGroups:
+            - !ImportValue ContainerSecurityGroup
+      LoadBalancers:
+        - ContainerName: webapp
+          ContainerPort: 5000
+          TargetGroupArn: !Ref TargetGroup
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: webapp-tg
+      VpcId: !ImportValue VPC
+      Port: 5000
+      Protocol: HTTP
+      Matcher:
+        HttpCode: 200-299
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 10
+      TargetType: ip
+
+Outputs:
+
+  ApiEndpoint:
+    Description: Webapp Endpoint
+    Value: !Join ['', ['http://', !ImportValue DomainName,':5000']]
+    Export:
+      Name: 'WebappEndpoint'
