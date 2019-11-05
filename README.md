@@ -1,7 +1,7 @@
 # Cloud-Project
 
-# Implementing Infrastructure as code using AWS Cloudformation
-# Run contanarized Dockerfile on Amazon ECS using AWS CloudFormation & CLI/AWS Console
+### Implementing Infrastructure as code using AWS Cloudformation
+### Run contanarized Dockerfile on Amazon ECS using AWS CloudFormation & CLI/AWS Console
 
 Create and run docker container on Amazon ECS using CloudFormation and CLI.
 
